@@ -94,3 +94,65 @@ h1 {
     padding: 28px 22px;
   }
 }
+
+.database {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e1e6ec;
+}
+
+.database h2 {
+  font-size: 18px;
+}
+
+.database p {
+  margin-top: 10px;
+  color: #526071;
+  font-size: 14px;
+}
+
+.database button {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #182230;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.database button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.database button:focus-visible {
+  outline: 3px solid #9a4500;
+  outline-offset: 3px;
+}
+
+.users-table {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.users-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.users-table caption {
+  margin-bottom: 8px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.users-table th,
+.users-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e1e6ec;
+  overflow-wrap: anywhere;
+}
