@@ -1,0 +1,131 @@
+name: Practice 7 - Pipeline with UAT
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: Deploy the validated artifact to Practice 7 production
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: p05-devops-cloudflare-app
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: p05-devops-cloudflare-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test with coverage
+        id: tests
+        run: npm run test:coverage
+
+      - name: Build production application
+        env:
+          CLOUDFLARE_ENV: production
+        run: npm run build
+
+      - name: Validate production artifact
+        run: node scripts/validate-production.mjs
+
+      - name: Upload coverage report
+        if: ${{ always() && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: practice-7-coverage
+          path: p05-devops-cloudflare-app/coverage/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload JUnit test report
+        if: ${{ always() && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: practice-7-test-results
+          path: p05-devops-cloudflare-app/test-results/junit.xml
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload successful build
+        uses: actions/upload-artifact@v7
+        with:
+          name: practice-7-build
+          path: p05-devops-cloudflare-app/dist/
+          # Preserve generated .assetsignore and .vite metadata inside dist only.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy-production:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_production == true && needs.ci.result == 'success' }}
+    timeout-minutes: 15
+    concurrency:
+      group: practice-7-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: p05-devops-cloudflare-app
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: p05-devops-cloudflare-app/package-lock.json
+
+      - name: Install locked deployment tooling
+        run: npm ci
+
+      - name: Download validated production build
+        uses: actions/download-artifact@v7
+        with:
+          name: practice-7-build
+          path: p05-devops-cloudflare-app/dist/
+
+      - name: Revalidate production artifact
+        run: node scripts/validate-production.mjs
+
+      - name: Deploy validated production artifact
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          npx --no-install wrangler deploy --config dist/p05_devops_cloudflare_app/wrangler.json > "$RUNNER_TEMP/practice-7-deploy.log" 2>&1
+
+      - name: Verify deployed production application
+        run: node scripts/verify-production.mjs "$RUNNER_TEMP/practice-7-deploy.log"

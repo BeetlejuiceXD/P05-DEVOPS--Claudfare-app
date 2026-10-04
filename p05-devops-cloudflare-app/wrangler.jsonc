@@ -21,7 +21,29 @@
             "database_name": "practica-6",
             "database_id": "5d0fc705-9400-4986-a70c-994d2151cce5"
         }
-    ]
+    ],
+	"env": {
+		"production": {
+			"name": "p07-devops-cloudflare-app-production",
+			"main": "worker/index.js",
+			"compatibility_date": "2026-09-16",
+			"workers_dev": true,
+			"assets": {
+				"not_found_handling": "single-page-application"
+			},
+			"observability": {
+				"enabled": true
+			},
+			"upload_source_maps": true,
+			"d1_databases": [
+				{
+					"binding": "practica-6",
+					"database_name": "p07-devops-production-db",
+					"database_id": "062be339-4ce9-452d-b44d-b2a9b8149f3a"
+				}
+			]
+		}
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
